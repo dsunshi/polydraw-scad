@@ -12,6 +12,9 @@ data Numm = Float | Double | Integer
 class Vector a where
     renderVector :: a -> String
 
+instance Vector (V2 Rational) where
+    renderVector (V2 x y) = printf "[%s, %s]" (show x) (show y)
+
 instance Vector (V2 Float) where
     renderVector (V2 x y) = printf "[%.3f, %.3f]" x y
 
@@ -20,6 +23,9 @@ instance Vector (V2 Double) where
 
 instance Vector (V2 Integer) where
     renderVector (V2 x y) = printf "[%d, %d]" x y
+
+instance Vector (V3 Rational) where
+    renderVector (V3 x y z) = printf "[%s, %s, %s]" (show x) (show y) (show z)
 
 instance Vector (V3 Float) where
     renderVector (V3 x y z) = printf "[%.3f, %.3f, %.3f]" x y z
@@ -57,4 +63,5 @@ renderVectorSolid :: (Vector a, Vector m) => String -> a -> Model m -> String
 renderVectorSolid name vec solid = printf "%s(%s) %s" name (renderVector vec) (renderModel solid)
 
 renderSolid :: Solid -> String
-renderSolid (Cube s) = printf "cube(%.3f);\n" (show s)
+renderSolid (Cube s) = printf "cube(%s);\n" (show s)
+renderSolid _ = undefined
