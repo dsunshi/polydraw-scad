@@ -10,7 +10,7 @@ build-type:          Simple
 extra-source-files:  README.md
 
 common warnings
-    ghc-options: -Wall
+    ghc-options: -Wall -Werror=incomplete-patterns
 
 library
     import:             warnings

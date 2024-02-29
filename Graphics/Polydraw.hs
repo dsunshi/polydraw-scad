@@ -2,7 +2,7 @@
 
  module Graphics.Polydraw (
      Model, Vector,
-     cube, prismoid,
+     cube, prismoid, pyramid, box,
      union, difference,
      translate, up,
      draw, write, render) where
@@ -13,8 +13,8 @@ import Linear.V3
 import Data.List hiding (union)
 
 -- Returns if x is an int to n decimal places
-isInt :: (Integral a, RealFrac b) => a -> b -> Bool
-isInt n x = round (10 ^ fromIntegral n * (x - fromIntegral (round x))) == 0
+isInt :: (RealFrac a) => Int -> a -> Bool
+isInt n x = round (10.0 ^ n * (x - fromIntegral ((round x) :: Int))) == (0 :: Int)
 
 fromV2 :: V2 Double -> V3 Double
 fromV2 (V2 x y) = V3 x y 0
@@ -29,7 +29,7 @@ class Vector a where
 data Solid =
     Cube Double
   | Prismoid [Double] [Double] Double
-  | Cylinder Double Double
+  | Box Double Double Double
     deriving Show
 
 data Model m =
@@ -42,10 +42,16 @@ data Model m =
 type Model3d = Model (V3 Double)
 
 cube :: Double -> Model3d
-cube s = translate (fromV2 $ V2 (-s/2) (-s/2) ) (Solid $ Cube s)
+cube s = translate (fromV2 $ V2 (-s / 2) (-s / 2) ) (Solid $ Cube s)
+
+box :: Double -> Double -> Double -> Model3d
+box w h d = translate (fromV2 $ V2 (-w / 2) (-h / 2) ) (Solid $ Box w h d)
 
 prismoid :: [Double] -> [Double] -> Double -> Model3d
 prismoid s1 s2 h = Solid $ Prismoid s1 s2 h
+
+pyramid :: Double -> Double -> Double -> Model3d
+pyramid s1 s2 h = Solid $ Prismoid [s1, s1] [s2, s2] h
 
 translate :: Vector v => v -> Model v -> Model v
 translate = Translate
@@ -91,8 +97,8 @@ renderTransform tName v model = printf "%s(%s) %s" tName (renderVector v) (rende
 
 renderSolid :: Solid -> String
 renderSolid (Cube s)           = printf "cube(%s);\n" (renderDouble s)
+renderSolid (Box w h d)        = printf "cube(%s);\n" (renderVector' [w, h, d])
 renderSolid (Prismoid s1 s2 h) = printf "prismoid(%s, %s, %s);\n" (renderVector' s1) (renderVector' s2) (renderDouble h)
-renderSolid _                  = undefined
 
 draw :: Vector v => Model v -> IO ()
 draw m = putStrLn $ "include <BOSL2/std.scad>\n\n" ++ renderModel m
