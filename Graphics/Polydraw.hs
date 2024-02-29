@@ -2,10 +2,10 @@
 
  module Graphics.Polydraw (
      Model, Vector,
-     cube,
+     cube, prismoid,
      union, difference,
      translate, up,
-     render) where
+     draw, write, render) where
 
 import Text.Printf
 import Linear.V2
@@ -28,6 +28,7 @@ class Vector a where
 
 data Solid =
     Cube Double
+  | Prismoid [Double] [Double] Double
   | Cylinder Double Double
     deriving Show
 
@@ -42,6 +43,9 @@ type Model3d = Model (V3 Double)
 
 cube :: Double -> Model3d
 cube s = translate (fromV2 $ V2 (-s/2) (-s/2) ) (Solid $ Cube s)
+
+prismoid :: [Double] -> [Double] -> Double -> Model3d
+prismoid s1 s2 h = Solid $ Prismoid s1 s2 h
 
 translate :: Vector v => v -> Model v -> Model v
 translate = Translate
@@ -86,5 +90,12 @@ renderTransform :: (Vector a, Vector m) => String -> a -> Model m -> String
 renderTransform tName v model = printf "%s(%s) %s" tName (renderVector v) (renderModel model)
 
 renderSolid :: Solid -> String
-renderSolid (Cube s) = printf "cube(%s);\n" (renderDouble s)
-renderSolid _        = undefined
+renderSolid (Cube s)           = printf "cube(%s);\n" (renderDouble s)
+renderSolid (Prismoid s1 s2 h) = printf "prismoid(%s, %s, %s);\n" (renderVector' s1) (renderVector' s2) (renderDouble h)
+renderSolid _                  = undefined
+
+draw :: Vector v => Model v -> IO ()
+draw m = putStrLn $ "include <BOSL2/std.scad>\n\n" ++ renderModel m
+
+write :: Vector v => String -> Model v -> IO ()
+write fOut m = writeFile fOut ("include <BOSL2/std.scad>\n\n" ++ renderModel m)
