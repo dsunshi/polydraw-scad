@@ -3,7 +3,7 @@
  module Graphics.Polydraw (
      Model, Vector,
      cube, prismoid, pyramid, box,
-     union, difference,
+     union, difference, stack,
      translate, up,
      draw, write, render) where
 
@@ -14,7 +14,7 @@ import Data.List hiding (union)
 
 -- Returns if x is an int to n decimal places
 isInt :: (RealFrac a) => Int -> a -> Bool
-isInt n x = round (10.0 ^ n * (x - fromIntegral ((round x) :: Int))) == (0 :: Int)
+isInt n x = round (10.0 ^ n * (x - fromIntegral (round x :: Int))) == (0 :: Int)
 
 fromV2 :: V2 Double -> V3 Double
 fromV2 (V2 x y) = V3 x y 0
@@ -26,6 +26,9 @@ up z = translate (V3 0 0 z)
 class Vector a where
     renderVector :: a -> String
 
+class Mesh a where
+    meshHeight :: a -> Double
+
 data Solid =
     Cube Double
   | Prismoid [Double] [Double] Double
@@ -36,6 +39,7 @@ data Model m =
     Solid Solid
   | Translate m (Model m)
   | Union [Model m]
+  | Stack [Model m]
   | Difference (Model m) [Model m]
     deriving Show
 
@@ -59,6 +63,9 @@ translate = Translate
 union :: Vector v => [Model v] -> Model v
 union = Union
 
+stack :: Vector v => [Model v] -> Model v
+stack = Union
+
 difference :: Vector v => Model v -> [Model v] -> Model v
 difference = Difference
 
@@ -79,6 +86,24 @@ instance Vector (V2 Double) where
 instance Vector (V3 Double) where
     renderVector (V3 x y z) = renderVector' [x, y, z]
 
+instance Mesh (V2 Double) where
+    meshHeight (V2 _ _) = 0
+
+instance Mesh (V3 Double) where
+    meshHeight (V3 _ _ z) = z
+
+instance Mesh Solid where
+    meshHeight (Cube s)         = s
+    meshHeight (Box _ h _)      = h
+    meshHeight (Prismoid _ _ h) = h
+
+instance Mesh (Model m) where
+    meshHeight (Translate v s)   = 0
+    meshHeight (Union xs)        = 0
+    meshHeight (Stack xs)        = 0
+    meshHeight (Difference s xs) = 0
+    meshHeight (Solid s)         = meshHeight s
+
 render :: Vector v => Model v -> String
 render = renderModel
 
@@ -87,9 +112,13 @@ renderModel (Translate v s)   = renderTransform "translate" v s
 renderModel (Solid s)         = renderSolid s
 renderModel (Union xs)        = renderList "union()" xs
 renderModel (Difference s xs) = renderList "difference()" (s:xs)
+renderModel (Stack xss)       = printf "union() {\n%s}\n" (renderStack xss 0)
+    where
+        renderStack [] _     = []
+        renderStack (x:xs) h = printf "\t%s" (renderModel $ up h x) : renderStack xs (h + meshHeight x)
 
 renderList :: Vector v => String -> [Model v] -> String
-renderList tName xs = printf "%s {\n\t%s}" tName body
+renderList tName xs = printf "%s {\n\t%s}\n" tName body
     where body = intercalate "\t" (map renderModel xs)
 
 renderTransform :: (Vector a, Vector m) => String -> a -> Model m -> String
