@@ -19,8 +19,21 @@ isInt n x = round (10.0 ^ n * (x - fromIntegral (round x :: Int))) == (0 :: Int)
 fromV2 :: V2 Double -> V3 Double
 fromV2 (V2 x y) = V3 x y 0
 
-up :: Double -> Model3d -> Model3d
-up z = translate (V3 0 0 z)
+-- up :: (Vector v) => Double -> Model v -> Model3d
+-- up z = translate (V3 0 0 z)
+
+class Motion a where
+    up :: Double -> a -> Model3d
+
+-- instance Motion Model2d where
+--     up z m = translate (V3 0 0 z) (solid m)
+
+-- instance Motion Model3d where
+--     up z = translate (V3 0 0 z)
+
+instance Motion (Model m) where
+    up z (Solid s) = translate (V3 0 0 z) (Solid s)
+    up z _ = undefined
 
 -- Common class for V2 and V3
 class Vector a where
@@ -33,6 +46,7 @@ data Solid =
     Cube Double
   | Prismoid [Double] [Double] Double
   | Box Double Double Double
+  | ToSolid Model2d
     deriving Show
 
 data Model m =
@@ -44,6 +58,11 @@ data Model m =
     deriving Show
 
 type Model3d = Model (V3 Double)
+type Model2d = Model (V2 Double)
+
+-- | Turn a 'Model2d' into a 'Model3d' exactly as is.
+solid :: Model2d -> Model3d
+solid = Solid . ToSolid
 
 cube :: Double -> Model3d
 cube s = translate (fromV2 $ V2 (-s / 2) (-s / 2) ) (Solid $ Cube s)
@@ -96,6 +115,7 @@ instance Mesh Solid where
     meshHeight (Cube s)         = s
     meshHeight (Box _ h _)      = h
     meshHeight (Prismoid _ _ h) = h
+    meshHeight (ToSolid _ )     = 0
 
 instance Mesh (Model m) where
     meshHeight (Translate v s)   = 0
@@ -113,9 +133,12 @@ renderModel (Solid s)         = renderSolid s
 renderModel (Union xs)        = renderList "union()" xs
 renderModel (Difference s xs) = renderList "difference()" (s:xs)
 renderModel (Stack xss)       = printf "union() {\n%s}\n" (renderStack xss 0)
-    where
-        renderStack [] _     = []
-        renderStack (x:xs) h = printf "\t%s" (renderModel $ up h x) : renderStack xs (h + meshHeight x)
+    -- where
+        -- renderStack :: Vector v => [Model v] -> Double -> String
+        -- renderStack [] _     = ""
+renderStack :: Vector v => [Model v] -> Double -> String
+renderStack (x:xs) h = printf "\t%s" (renderModel $ up h x)
+    ++ renderStack xs (h + meshHeight x)
 
 renderList :: Vector v => String -> [Model v] -> String
 renderList tName xs = printf "%s {\n\t%s}\n" tName body
@@ -129,8 +152,8 @@ renderSolid (Cube s)           = printf "cube(%s);\n" (renderDouble s)
 renderSolid (Box w h d)        = printf "cube(%s);\n" (renderVector' [w, h, d])
 renderSolid (Prismoid s1 s2 h) = printf "prismoid(%s, %s, %s);\n" (renderVector' s1) (renderVector' s2) (renderDouble h)
 
-draw :: Vector v => Model v -> IO ()
-draw m = putStrLn $ "include <BOSL2/std.scad>\n\n" ++ renderModel m
+draw :: Vector v => Model v -> String
+draw m = "include <BOSL2/std.scad>\n\n" ++ renderModel m
 
 write :: Vector v => String -> Model v -> IO ()
-write fOut m = writeFile fOut ("include <BOSL2/std.scad>\n\n" ++ renderModel m)
+write fOut m = writeFile fOut $ draw m
