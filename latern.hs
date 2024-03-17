@@ -15,3 +15,17 @@ pedestal = union [
         pHeight = 12
         s = 1 / (sqrt 2)
 
+pedestal2 = stack [
+    pyramid bSize1 bSize2 bHeight,
+    pyramid pSize1 pSize2 pHeight,
+    box s s (9)
+    ]
+    where
+        bSize1  = 18
+        bSize2  = 14
+        bHeight = 6
+        pSize1  = 11
+        pSize2  = 8.5
+        pHeight = 12
+        s = 1 / (sqrt 2)
+

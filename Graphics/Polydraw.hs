@@ -19,22 +19,6 @@ isInt n x = round (10.0 ^ n * (x - fromIntegral (round x :: Int))) == (0 :: Int)
 fromV2 :: V2 Double -> V3 Double
 fromV2 (V2 x y) = V3 x y 0
 
--- up :: (Vector v) => Double -> Model v -> Model3d
--- up z = translate (V3 0 0 z)
-
-class Motion a where
-    up :: Double -> a -> Model3d
-
--- instance Motion Model2d where
---     up z m = translate (V3 0 0 z) (solid m)
-
--- instance Motion Model3d where
---     up z = translate (V3 0 0 z)
-
-instance Motion (Model m) where
-    up z (Solid s) = translate (V3 0 0 z) (Solid s)
-    up z _ = undefined
-
 -- Common class for V2 and V3
 class Vector a where
     renderVector :: a -> String
@@ -43,18 +27,19 @@ class Mesh a where
     meshHeight :: a -> Double
 
 data Solid =
-    Cube Double
-  | Prismoid [Double] [Double] Double
-  | Box Double Double Double
-  | ToSolid Model2d
+    Cube !Double
+  | Prismoid ![Double] ![Double] !Double
+  | Box !Double !Double !Double
+  | ToSolid !Model2d
     deriving Show
 
 data Model m =
-    Solid Solid
-  | Translate m (Model m)
-  | Union [Model m]
-  | Stack [Model m]
-  | Difference (Model m) [Model m]
+    Solid !Solid
+  | Translate !m !(Model m)
+  | Up !Double !(Model m)
+  | Union ![Model m]
+  | Stack ![Model m]
+  | Difference !(Model m) ![Model m]
     deriving Show
 
 type Model3d = Model (V3 Double)
@@ -79,11 +64,14 @@ pyramid s1 s2 h = Solid $ Prismoid [s1, s1] [s2, s2] h
 translate :: Vector v => v -> Model v -> Model v
 translate = Translate
 
+up :: Vector v => Double -> Model v -> Model v
+up = Up
+
 union :: Vector v => [Model v] -> Model v
 union = Union
 
 stack :: Vector v => [Model v] -> Model v
-stack = Union
+stack = Stack
 
 difference :: Vector v => Model v -> [Model v] -> Model v
 difference = Difference
@@ -118,27 +106,30 @@ instance Mesh Solid where
     meshHeight (ToSolid _ )     = 0
 
 instance Mesh (Model m) where
-    meshHeight (Translate v s)   = 0
-    meshHeight (Union xs)        = 0
-    meshHeight (Stack xs)        = 0
-    meshHeight (Difference s xs) = 0
-    meshHeight (Solid s)         = meshHeight s
+    meshHeight (Translate _ _)  = 0
+    meshHeight (Up _ _)         = 0
+    meshHeight (Union _)        = 0
+    meshHeight (Stack _)        = 0
+    meshHeight (Difference _ _) = 0
+    meshHeight (Solid s)        = meshHeight s
 
 render :: Vector v => Model v -> String
 render = renderModel
 
 renderModel :: Vector v => Model v -> String
 renderModel (Translate v s)   = renderTransform "translate" v s
+renderModel (Up h s)          = renderTransform "translate" (V3 0.0 0.0 h) s
 renderModel (Solid s)         = renderSolid s
 renderModel (Union xs)        = renderList "union()" xs
 renderModel (Difference s xs) = renderList "difference()" (s:xs)
-renderModel (Stack xss)       = printf "union() {\n%s}\n" (renderStack xss 0)
-    -- where
-        -- renderStack :: Vector v => [Model v] -> Double -> String
-        -- renderStack [] _     = ""
-renderStack :: Vector v => [Model v] -> Double -> String
-renderStack (x:xs) h = printf "\t%s" (renderModel $ up h x)
-    ++ renderStack xs (h + meshHeight x)
+renderModel (Stack s)         = printf "union() {\n%s}\n" (renderStack s 0 "")
+    where
+        renderStack :: Vector v => [Model v] -> Double -> String -> String
+        renderStack [] _ acc     = acc
+        renderStack (x:xs) 0 acc = renderStack xs (meshHeight x)     (acc ++ printf "\t%s" (renderModel x))
+        renderStack (x:xs) h acc = renderStack xs (h + meshHeight x) (acc ++ printf "\t%s" (renderModel shifted))
+            where
+                shifted = up h x
 
 renderList :: Vector v => String -> [Model v] -> String
 renderList tName xs = printf "%s {\n\t%s}\n" tName body
@@ -151,6 +142,7 @@ renderSolid :: Solid -> String
 renderSolid (Cube s)           = printf "cube(%s);\n" (renderDouble s)
 renderSolid (Box w h d)        = printf "cube(%s);\n" (renderVector' [w, h, d])
 renderSolid (Prismoid s1 s2 h) = printf "prismoid(%s, %s, %s);\n" (renderVector' s1) (renderVector' s2) (renderDouble h)
+renderSolid (ToSolid _)        = ""
 
 draw :: Vector v => Model v -> String
 draw m = "include <BOSL2/std.scad>\n\n" ++ renderModel m
