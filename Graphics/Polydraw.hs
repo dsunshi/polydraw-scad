@@ -179,8 +179,8 @@ renderTransform tName v model = printf "%s(%s) %s" tName (renderVector v) (rende
 
 renderSolid :: Solid -> String
 renderSolid (Cube s)           = printf "cube(%s);\n" (renderDouble s)
-renderSolid (Cylinder h (R r) f)   = printf "cylinder(h = %s, r = %s, %s);\n" (renderDouble r) (renderDouble h) (renderFacet f)
-renderSolid (Cylinder h (D d) f)   = printf "cylinder(h = %s, d = %s, %s);\n" (renderDouble d) (renderDouble h) (renderFacet f)
+renderSolid (Cylinder h (R r) f)   = printf "cylinder(h = %s, r = %s, %s);\n" (renderDouble h) (renderDouble r) (renderFacet f)
+renderSolid (Cylinder h (D d) f)   = printf "cylinder(h = %s, d = %s, %s);\n" (renderDouble h) (renderDouble d) (renderFacet f)
 renderSolid (Box w h d)        = printf "cube(%s);\n" (renderVector' [w, h, d])
 renderSolid (Prismoid s1 s2 h) = printf "prismoid(%s, %s, %s);\n" (renderVector' s1) (renderVector' s2) (renderDouble h)
 renderSolid (ToSolid _)        = ""

@@ -22,13 +22,15 @@ pedestal = stack [
 lightbox :: Model3d
 lightbox = union [
         base,
-        up sHeight lb
+        up sHeight lb,
+        translate (V3 pegOffset pegOffset (sHeight + lbSize)) capPeg,
+        translate (V3 (-pegOffset) (-pegOffset) (sHeight + lbSize)) capPeg
     ]
     where
         lb = difference (pyramid lbSize1 lbSize2 lbSize) [
-                up z $ box lbWinSize     (lbSize * 1.5) lbWinSize,
-                up z $ box (lbSize * 1.5) lbWinSize     lbWinSize,
-                up z $ box lbWinSize      lbWinSize    (lbSize * 1.5),
+                up z hole,
+                up z $ rotate (V3 0 0 90) hole,
+                up z $ box lbWinSize lbWinSize (lbSize * 1.5),
                 cylinder ledH (d ledD) (fn 33)
             ]
         sSize     = 16
@@ -41,20 +43,35 @@ lightbox = union [
         ledD    = 5
         ledH    = 3.2
         ---
+        hole = translate (V3 (-lbSize * 0.75) 0 0)
+            $ up (lbWinSize / 2)
+            $ rotate (V3 0 90 0)
+            $ cylinder (lbSize * 1.5) (d lbWinSize) (fn 33)
         base = difference (pyramid sSize sSize sHeight) [ peg ]
         peg = box s s sHeight
+        capPegS = 2
+        capPeg = cube capPegS
+        pegOffset = lbWinSize / 2 + capPegS / 2
         s = ledD / sqrt 2
         z = (lbSize - lbWinSize) / 2
 
 cap :: Model3d
-cap = stack [
+cap = difference (stack [
         pyramid 22 9   2.75,
         pyramid 7  5.5 2,
         pyramid 4  2.5 2
-    ]
+    ]) [
+        translate (V3   pegOffset    pegOffset  0) capPeg,
+        translate (V3 (-pegOffset) (-pegOffset) 0) capPeg
+      ]
+      where
+        capPegS = 2
+        capPeg = cube capPegS
+        pegOffset = lbWinSize / 2 + capPegS / 2
+        lbWinSize = 7.5
 
 scratchpad :: Model3d
-scratchpad = up 5 $ rotate (V3 0 90 0) $ cylinder 10 (d 5) (fn 33)
+scratchpad = translate (V3 (-5) 0 0) $ up (5/2) $ rotate (V3 0 90 0) $ cylinder 10 (d 5) (fn 33)
 
 main :: IO ()
 main = do
