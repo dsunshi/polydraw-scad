@@ -1,10 +1,13 @@
 {-# LANGUAGE FlexibleInstances #-}
 
  module Graphics.Polydraw (
-     Model, Vector,
-     cube, prismoid, pyramid, box,
+     Model, Vector, Model2d, Model3d,
+     cube, prismoid, pyramid, box, cylinder,
      union, difference, stack,
-     translate, up,
+     rotate, translate, up,
+     Chord, Facet,
+     fa, fs, fn,
+     r, d,
      draw, write, render) where
 
 import Text.Printf
@@ -26,8 +29,28 @@ class Vector a where
 class Mesh a where
     meshHeight :: a -> Double
 
+data Facet = Fa !Double | Fs !Double | Fn !Int | Def deriving (Show)
+
+fa :: Double -> Facet
+fa = Fa
+
+fs :: Double -> Facet
+fs = Fs
+
+fn :: Int -> Facet
+fn = Fn
+
+data Chord = R !Double | D !Double deriving (Show)
+
+r :: Double -> Chord
+r = R
+
+d :: Double -> Chord
+d = D
+
 data Solid =
     Cube !Double
+  | Cylinder !Double !Chord !Facet
   | Prismoid ![Double] ![Double] !Double
   | Box !Double !Double !Double
   | ToSolid !Model2d
@@ -36,6 +59,7 @@ data Solid =
 data Model m =
     Solid !Solid
   | Translate !m !(Model m)
+  | Rotate !m !(Model m)
   | Up !Double !(Model m)
   | Union ![Model m]
   | Stack ![Model m]
@@ -55,6 +79,9 @@ cube s = translate (fromV2 $ V2 (-s / 2) (-s / 2) ) (Solid $ Cube s)
 box :: Double -> Double -> Double -> Model3d
 box w h d = translate (fromV2 $ V2 (-w / 2) (-h / 2) ) (Solid $ Box w h d)
 
+cylinder :: Double -> Chord -> Facet -> Model3d
+cylinder h r f = Solid $ Cylinder h r f
+
 prismoid :: [Double] -> [Double] -> Double -> Model3d
 prismoid s1 s2 h = Solid $ Prismoid s1 s2 h
 
@@ -63,6 +90,9 @@ pyramid s1 s2 h = Solid $ Prismoid [s1, s1] [s2, s2] h
 
 translate :: Vector v => v -> Model v -> Model v
 translate = Translate
+
+rotate :: Vector v => v -> Model v -> Model v
+rotate = Rotate
 
 up :: Vector v => Double -> Model v -> Model v
 up = Up
@@ -101,16 +131,18 @@ instance Mesh (V3 Double) where
 
 instance Mesh Solid where
     meshHeight (Cube s)         = s
+    meshHeight (Cylinder h _ _) = h
     meshHeight (Box _ h _)      = h
     meshHeight (Prismoid _ _ h) = h
     meshHeight (ToSolid _ )     = 0
 
 instance Mesh (Model m) where
     meshHeight (Translate _ _)  = 0
+    meshHeight (Rotate _ _)     = 0
     meshHeight (Up _ _)         = 0
     meshHeight (Union _)        = 0
     meshHeight (Stack _)        = 0
-    meshHeight (Difference _ _) = 0
+    meshHeight (Difference _ _) = 0 -- TODO: How to handle better - this is a silent failure that is hard to debug
     meshHeight (Solid s)        = meshHeight s
 
 render :: Vector v => Model v -> String
@@ -118,6 +150,7 @@ render = renderModel
 
 renderModel :: Vector v => Model v -> String
 renderModel (Translate v s)   = renderTransform "translate" v s
+renderModel (Rotate v s)      = renderTransform "rotate" v s
 renderModel (Up h s)          = renderTransform "translate" (V3 0.0 0.0 h) s
 renderModel (Solid s)         = renderSolid s
 renderModel (Union xs)        = renderList "union()" xs
@@ -135,11 +168,19 @@ renderList :: Vector v => String -> [Model v] -> String
 renderList tName xs = printf "%s {\n\t%s}\n" tName body
     where body = intercalate "\t" (map renderModel xs)
 
+renderFacet :: Facet -> String
+renderFacet (Fa f) = printf "$fa = %s" (renderDouble f)
+renderFacet (Fs f) = printf "$fs = %s" (renderDouble f)
+renderFacet (Fn n) = printf "$fn = %s" (renderDouble $ fromIntegral n)
+renderFacet Def    = ""
+
 renderTransform :: (Vector a, Vector m) => String -> a -> Model m -> String
 renderTransform tName v model = printf "%s(%s) %s" tName (renderVector v) (renderModel model)
 
 renderSolid :: Solid -> String
 renderSolid (Cube s)           = printf "cube(%s);\n" (renderDouble s)
+renderSolid (Cylinder h (R r) f)   = printf "cylinder(h = %s, r = %s, %s);\n" (renderDouble r) (renderDouble h) (renderFacet f)
+renderSolid (Cylinder h (D d) f)   = printf "cylinder(h = %s, d = %s, %s);\n" (renderDouble d) (renderDouble h) (renderFacet f)
 renderSolid (Box w h d)        = printf "cube(%s);\n" (renderVector' [w, h, d])
 renderSolid (Prismoid s1 s2 h) = printf "prismoid(%s, %s, %s);\n" (renderVector' s1) (renderVector' s2) (renderDouble h)
 renderSolid (ToSolid _)        = ""
