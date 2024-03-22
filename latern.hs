@@ -16,7 +16,7 @@ pedestal = stack [
         lbWinSize = 7.5
         ---
         peg = box s s boxH
-        s = ledD / sqrt 2
+        s = ledD / sqrt 2 * 0.9
         boxH = sHeight - (ledH - ((lbSize - lbWinSize) / 2))
 
 lightbox :: Model3d
@@ -49,7 +49,7 @@ lightbox = union [
             $ cylinder (lbSize * 1.5) (d lbWinSize) (fn 33)
         base = difference (pyramid sSize sSize sHeight) [ peg ]
         peg = box s s sHeight
-        capPegS = 2
+        capPegS = 1
         capPeg = cube capPegS
         pegOffset = lbWinSize / 2 + capPegS / 2
         s = ledD / sqrt 2
@@ -65,13 +65,14 @@ cap = difference (stack [
         translate (V3 (-pegOffset) (-pegOffset) 0) capPeg
       ]
       where
-        capPegS = 2
+        capPegS = 1.5
         capPeg = cube capPegS
         pegOffset = lbWinSize / 2 + capPegS / 2
         lbWinSize = 7.5
 
 scratchpad :: Model3d
 scratchpad = translate (V3 (-5) 0 0) $ up (5/2) $ rotate (V3 0 90 0) $ cylinder 10 (d 5) (fn 33)
+
 
 main :: IO ()
 main = do
