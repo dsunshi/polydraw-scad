@@ -1,5 +1,5 @@
 cabal-version:       3.0
-name:                poly-garden
+name:                polydraw
 version:             0.1.1
 license:             BSD-4-Clause
 license-file:        LICENSE
@@ -22,4 +22,4 @@ library
 
 source-repository head
   type:           git
-  location:       https://github.com/dsunshi/poly-garden
+  location:       https://github.com/dsunshi/polydraw

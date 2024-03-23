@@ -15,7 +15,7 @@
         };
 
         # haskell-flake doesn't set the default package, but you can do it here.
-        packages.default = self'.packages.poly-garden;
+        packages.default = self'.packages.poly-draw;
       };
     };
 }
