@@ -71,7 +71,7 @@ cap = difference (stack [
         lbWinSize = 7.5
 
 scratchpad :: Model3d
-scratchpad = polyhedron [V3 0 0 0, V3 1 1 1] [V3 2 2 2, V3 3 3 3] 3
+scratchpad = polyhedron [V3 0 0 0, V3 1 1 1] [[0], [1]] 3
 
 main :: IO ()
 main = do
