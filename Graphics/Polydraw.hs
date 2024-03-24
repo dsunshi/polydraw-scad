@@ -2,7 +2,7 @@
 
  module Graphics.Polydraw (
      Model, Vector, Model2d, Model3d,
-     cube, prismoid, pyramid, box, cylinder,
+     cube, prismoid, pyramid, box, cylinder, polyhedron,
      union, difference, stack,
      rotate, translate, up,
      Chord, Facet,
@@ -52,6 +52,7 @@ data Solid =
     Cube !Double
   | Cylinder !Double !Chord !Facet
   | Prismoid ![Double] ![Double] !Double
+  | Polyhedron ![V3 Double] ![V3 Double] !Int
   | Box !Double !Double !Double
   | ToSolid !Model2d
     deriving Show
@@ -85,6 +86,9 @@ cylinder h r f = Solid $ Cylinder h r f
 prismoid :: [Double] -> [Double] -> Double -> Model3d
 prismoid s1 s2 h = Solid $ Prismoid s1 s2 h
 
+polyhedron :: [V3 Double] -> [V3 Double] -> Int -> Model3d
+polyhedron p f c = Solid $ Polyhedron p f c
+
 pyramid :: Double -> Double -> Double -> Model3d
 pyramid s1 s2 h = Solid $ Prismoid [s1, s1] [s2, s2] h
 
@@ -117,6 +121,9 @@ renderVector' v = "[" ++
     intercalate ", " (map renderDouble v)
     ++ "]"
 
+renderInt :: Int -> String
+renderInt = renderDouble . fromIntegral
+
 instance Vector (V2 Double) where
     renderVector (V2 x y) = renderVector' [x, y]
 
@@ -130,11 +137,12 @@ instance Mesh (V3 Double) where
     meshHeight (V3 _ _ z) = z
 
 instance Mesh Solid where
-    meshHeight (Cube s)         = s
-    meshHeight (Cylinder h _ _) = h
-    meshHeight (Box _ h _)      = h
-    meshHeight (Prismoid _ _ h) = h
-    meshHeight (ToSolid _ )     = 0
+    meshHeight (Cube s)           = s
+    meshHeight (Cylinder h _ _)   = h
+    meshHeight (Polyhedron _ _ _) = undefined -- TODO: This needs some more thought
+    meshHeight (Box _ h _)        = h
+    meshHeight (Prismoid _ _ h)   = h
+    meshHeight (ToSolid _ )       = 0
 
 instance Mesh (Model m) where
     meshHeight (Translate _ _)  = 0
@@ -171,19 +179,26 @@ renderList tName xs = printf "%s {\n\t%s}\n" tName body
 renderFacet :: Facet -> String
 renderFacet (Fa f) = printf "$fa = %s" (renderDouble f)
 renderFacet (Fs f) = printf "$fs = %s" (renderDouble f)
-renderFacet (Fn n) = printf "$fn = %s" (renderDouble $ fromIntegral n)
+renderFacet (Fn n) = printf "$fn = %s" (renderInt n)
 renderFacet Def    = ""
 
 renderTransform :: (Vector a, Vector m) => String -> a -> Model m -> String
 renderTransform tName v model = printf "%s(%s) %s" tName (renderVector v) (renderModel model)
 
+renderV3List :: [V3 Double] -> String
+renderV3List l = intercalate ", " (map renderV3 l)
+
+renderV3 :: V3 Double -> String
+renderV3 (V3 x y z) = printf "[%s, %s, %s]" (renderDouble x) (renderDouble y) (renderDouble z)
+
 renderSolid :: Solid -> String
-renderSolid (Cube s)           = printf "cube(%s);\n" (renderDouble s)
-renderSolid (Cylinder h (R r) f)   = printf "cylinder(h = %s, r = %s, %s);\n" (renderDouble h) (renderDouble r) (renderFacet f)
-renderSolid (Cylinder h (D d) f)   = printf "cylinder(h = %s, d = %s, %s);\n" (renderDouble h) (renderDouble d) (renderFacet f)
-renderSolid (Box w h d)        = printf "cube(%s);\n" (renderVector' [w, h, d])
-renderSolid (Prismoid s1 s2 h) = printf "prismoid(%s, %s, %s);\n" (renderVector' s1) (renderVector' s2) (renderDouble h)
-renderSolid (ToSolid _)        = ""
+renderSolid (Cube s)             = printf "cube(%s);\n" (renderDouble s)
+renderSolid (Cylinder h (R r) f) = printf "cylinder(h = %s, r = %s, %s);\n" (renderDouble h) (renderDouble r) (renderFacet f)
+renderSolid (Cylinder h (D d) f) = printf "cylinder(h = %s, d = %s, %s);\n" (renderDouble h) (renderDouble d) (renderFacet f)
+renderSolid (Box w h d)          = printf "cube(%s);\n" (renderVector' [w, h, d])
+renderSolid (Polyhedron p f c)   = printf "polyhedron(points = %s, faces = %s, convexity = %s);\n" (renderV3List p) (renderV3List f) (renderInt c)
+renderSolid (Prismoid s1 s2 h)   = printf "prismoid(%s, %s, %s);\n" (renderVector' s1) (renderVector' s2) (renderDouble h)
+renderSolid (ToSolid _)          = ""
 
 draw :: Vector v => Model v -> String
 draw m = "include <BOSL2/std.scad>\n\n" ++ renderModel m

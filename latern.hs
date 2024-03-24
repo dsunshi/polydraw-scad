@@ -71,8 +71,7 @@ cap = difference (stack [
         lbWinSize = 7.5
 
 scratchpad :: Model3d
-scratchpad = translate (V3 (-5) 0 0) $ up (5/2) $ rotate (V3 0 90 0) $ cylinder 10 (d 5) (fn 33)
-
+scratchpad = polyhedron [V3 0 0 0, V3 1 1 1] [V3 2 2 2, V3 3 3 3] 3
 
 main :: IO ()
 main = do
