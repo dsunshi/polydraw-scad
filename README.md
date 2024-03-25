@@ -16,6 +16,41 @@ Library for generating 3D models via a Haskell EDSL <a href="https://openscad.or
 
 [![Built with Nix][builtwithnix-badge]][builtwithnix]
 
+# Installation
+
+## Nix flake
+
+### Example flake.nix
+
+```nix
+{
+  inputs = {
+    nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
+    flake-parts.url = "github:hercules-ci/flake-parts";
+    haskell-flake.url = "github:srid/haskell-flake";
+    polydraw.url = "github:dsunshi/polydraw";
+  };
+  outputs = inputs@{ self, nixpkgs, flake-parts, ... }:
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      systems = nixpkgs.lib.systems.flakeExposed;
+      imports = [ inputs.haskell-flake.flakeModule ];
+
+      perSystem = { self', pkgs, ... }: {
+
+        haskellProjects.default = {
+            packages = {
+                polydraw.source = inputs.polydraw;
+            };
+        };
+
+        # haskell-flake doesn't set the default package, but you can do it here.
+        packages.default = self'.packages.<your-package-name>;
+      };
+    };
+}
+```
+
+
 ## Origin from Graphics.Polydraw
 
 Polydraw is primarily a fork of the brilliant [Graphics.OpenSCAD](https://hackage.haskell.org/package/OpenSCAD-0.2.1.0/docs/Graphics-OpenSCAD.html).
