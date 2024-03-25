@@ -14,7 +14,7 @@ Library for generating 3D models via a Haskell EDSL <a href="https://openscad.or
 
 # Graphics.Polydraw
 
-[![Built with Nix][builtwithnix-badge]][builtwithnix]
+[![Built with Nix][builtwithnix-badge]][builtwithnix] [[https://img.shields.io/badge/built%20with-Haskell-8f4e8b.svg]]
 
 # 🚀&nbsp; Installation
 
@@ -40,6 +40,8 @@ haskellProjects.default = {
 
 ### Example flake.nix
 
+The following is the content of a `flake.nix` file, which can be used to build a
+project using polydraw.
 ```nix
 {
   inputs = {
