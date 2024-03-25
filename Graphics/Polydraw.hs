@@ -103,7 +103,8 @@ prismoid (bw:bl:_) (tw:tl:_) h = polyhedron points faces 10
         f = V3 (tw / 2)  (-tl / 2) h
         g = V3 (-tw / 2) (-tl / 2) h
         i = V3 (-tw / 2) (tl / 2)  h
--- prismoid s1 s2 h = Solid $ Prismoid s1 s2 h
+prismoid s1 s2 _ = undefined
+
 
 {-
 The convexity parameter specifies the maximum number of faces a ray intersecting the object might penetrate.
